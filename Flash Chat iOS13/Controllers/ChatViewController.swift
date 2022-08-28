@@ -9,6 +9,7 @@
 import UIKit
 import FirebaseAuth
 import FirebaseFirestore
+import IQKeyboardManagerSwift
 
 class ChatViewController: UIViewController {
 
@@ -34,7 +35,9 @@ class ChatViewController: UIViewController {
     func loadMessages(){
         
         messages = []
-        db.collection(K.FStore.collectionName).addSnapshotListener { querySnapshot, error in
+        db.collection(K.FStore.collectionName)
+            .order(by: K.FStore.dateField)
+            .addSnapshotListener { querySnapshot, error in
             
             self.messages = []
             
@@ -49,7 +52,11 @@ class ChatViewController: UIViewController {
                             let newMessage = Message(sender: messageSender, body: messageBody)
                             self.messages.append(newMessage)
                             DispatchQueue.main.async {
+                               
                                 self.tableView.reloadData()
+                                let indexPath = IndexPath(row: self.messages.count - 1, section: 0)
+                                self.tableView.scrollToRow(at: indexPath, at: .top, animated: true)
+                                
                             }
                         }
                         
@@ -66,12 +73,18 @@ class ChatViewController: UIViewController {
             let messageSender = Auth.auth().currentUser?.email {
             
             db.collection(K.FStore.collectionName).addDocument(data: [
-                K.FStore.senderField: messageSender, K.FStore.bodyField: messageBody]) { error in
+                K.FStore.senderField: messageSender,
+                K.FStore.bodyField: messageBody,
+                K.FStore.dateField: Date().timeIntervalSince1970]) { error in
                     if let e = error {
                         print(e)
                     }
                     else{
                         print("Data saved succesfully")
+                        DispatchQueue.main.async {
+                            self.messageTextfield.text = ""
+                        }
+                        
                     }
                 }
             
